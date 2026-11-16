@@ -9,8 +9,8 @@
 //Import
 
 import basis.*;
+import org.json.*;
 
-import java.awt.*;
 import java.util.Random;
 
 public class BaumDemo extends Fenster implements KnopfLauscher {
@@ -74,9 +74,69 @@ public class BaumDemo extends Fenster implements KnopfLauscher {
         }
     }
 
+    private static int ebenen(JSONObject node) {
+        if (node == null) return 0;
+
+        int links = ebenen(node.optJSONObject("smaller"));
+        int rechts = ebenen(node.optJSONObject("bigger"));
+
+        if (links > rechts) {
+            return links + 1;
+        } else {
+            return rechts + 1;
+        }
+    }
+
+    private static String ausgabe(JSONObject node) {
+        if (node == null) return "";
+
+        String line = "";
+        line = line + ausgabe(node.optJSONObject("smaller"));
+        line = line + " " + node.getInt("self") + " ";
+        line = line + ausgabe(node.optJSONObject("bigger"));
+
+        return line;
+    }
+
+    private void internZeichne(JSONObject node, double x, double y, double dx, double dy, double radius) {
+        if (node == null) return;
+
+        JSONObject smaller = node.optJSONObject("smaller");
+        JSONObject bigger = node.optJSONObject("bigger");
+
+        stift.setzeFuellMuster(0);
+        stift.setzeFarbe(Farbe.DUNKELGRAU);
+        if (smaller != null) stift.linie(x, y, x - dx, y + dy);
+        if (bigger != null) stift.linie(x, y, x + dx, y + dy);
+
+        internZeichne(smaller, x - dx, y + dy, dx / 2, dy, radius);
+        internZeichne(bigger, x + dx, y + dy, dx / 2, dy, radius);
+
+        stift.setzeFuellMuster(1);
+        stift.setzeFarbe(Farbe.GELB);
+        stift.kreis(x, y, radius);
+        stift.setzeFuellMuster(0);
+        stift.setzeFarbe(Farbe.SCHWARZ);
+        stift.kreis(x, y, radius);
+
+        String text = "" + node.getInt("self");
+        stift.bewegeBis(x - stift.textBreite(text) / 2.0, y + stift.textHoehe() / 3.0);
+        stift.schreibeText(text);
+    }
+
+    private void zeichne(JSONObject json, double breite, double hoehe) {
+        if (json == null) return;
+
+        int ebenen = ebenen(json);
+        double dy = hoehe / ebenen;
+        double radius = Math.min(15, dy / 3);
+
+        internZeichne(json, breite / 2, dy / 2, breite / 4, dy, radius);
+    }
+
     private void zeichneBaum() {
         leinwand.loescheAlles();
-        Baum.zeichne(stift, baum.externZeichnen(), leinwand.breite(), leinwand.hoehe());
+        zeichne(baum.externZeichnen(), leinwand.breite(), leinwand.hoehe());
     }
 
     @Override
@@ -87,11 +147,13 @@ public class BaumDemo extends Fenster implements KnopfLauscher {
             baum.add(zahlenfeld.ganzZahl());
             zeichneBaum();
         } else if (k == knopf2) {
-            System.out.println(baum.print());
-            text1.setzeText(baum.print());
+            String ausgabe = ausgabe(baum.externZeichnen());
+            System.out.println(ausgabe);
+            text1.setzeText(ausgabe);
         } else if (k == knopf3) {
-            System.out.println("Anzahl der Ebenen:" + baum.ebenen());
-            text1.setzeText("Anzahl der Ebenen: " + baum.ebenen());
+            int ebenen = ebenen(baum.externZeichnen());
+            System.out.println("Anzahl der Ebenen:" + ebenen);
+            text1.setzeText("Anzahl der Ebenen: " + ebenen);
         } else if (k == knopf4) {
             int zahl = zahlenfeld.ganzZahl();
             if (baum.contains(zahl)) {
@@ -106,7 +168,7 @@ public class BaumDemo extends Fenster implements KnopfLauscher {
             if (anzahl < 1 || anzahl > 31) anzahl = 10;
 
             zufallsBaum(anzahl);
-            text1.setzeText(anzahl + " Zufallszahlen eingefügt, " + baum.ebenen() + " Ebenen");
+            text1.setzeText(anzahl + " Zufallszahlen eingefügt, " + ebenen(baum.externZeichnen()) + " Ebenen");
             zeichneBaum();
         }
     }

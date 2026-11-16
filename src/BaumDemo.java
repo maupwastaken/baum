@@ -21,7 +21,7 @@ public class BaumDemo extends Fenster implements KnopfLauscher {
     private ZahlenFeld zahlenfeld;
     private TextFeld text1;
     private Leinwand leinwand;
-    private Stift stift;
+    private Zeichner zeichner;
     private Baum baum;
     private Random zufall;
 
@@ -43,7 +43,6 @@ public class BaumDemo extends Fenster implements KnopfLauscher {
         text1.setzeText("noch leer");
         leinwand = new Leinwand(10, 50, 580, 400);
         leinwand.setzeHintergrundFarbe(Farbe.WEISS);
-        stift = new Stift(leinwand);
         knopf1 = new Knopf("Einfügen", 10, 460, 106, 30);
         knopf1.setzeKnopfLauscher(this);
         knopf2 = new Knopf("Ausgeben", 126, 460, 106, 30);
@@ -57,6 +56,7 @@ public class BaumDemo extends Fenster implements KnopfLauscher {
         knopf6 = new Knopf("Zufällig", 10, 500, 106, 30);
         knopf6.setzeKnopfLauscher(this);
 
+        zeichner = new Zeichner(leinwand);
         baum = new Baum();
         zufall = new Random();
     }
@@ -74,19 +74,6 @@ public class BaumDemo extends Fenster implements KnopfLauscher {
         }
     }
 
-    private static int ebenen(JSONObject node) {
-        if (node == null) return 0;
-
-        int links = ebenen(node.optJSONObject("smaller"));
-        int rechts = ebenen(node.optJSONObject("bigger"));
-
-        if (links > rechts) {
-            return links + 1;
-        } else {
-            return rechts + 1;
-        }
-    }
-
     private static String ausgabe(JSONObject node) {
         if (node == null) return "";
 
@@ -98,60 +85,19 @@ public class BaumDemo extends Fenster implements KnopfLauscher {
         return line;
     }
 
-    private void internZeichne(JSONObject node, double x, double y, double dx, double dy, double radius) {
-        if (node == null) return;
-
-        JSONObject smaller = node.optJSONObject("smaller");
-        JSONObject bigger = node.optJSONObject("bigger");
-
-        stift.setzeFuellMuster(0);
-        stift.setzeFarbe(Farbe.DUNKELGRAU);
-        if (smaller != null) stift.linie(x, y, x - dx, y + dy);
-        if (bigger != null) stift.linie(x, y, x + dx, y + dy);
-
-        internZeichne(smaller, x - dx, y + dy, dx / 2, dy, radius);
-        internZeichne(bigger, x + dx, y + dy, dx / 2, dy, radius);
-
-        stift.setzeFuellMuster(1);
-        stift.setzeFarbe(Farbe.GELB);
-        stift.kreis(x, y, radius);
-        stift.setzeFuellMuster(0);
-        stift.setzeFarbe(Farbe.SCHWARZ);
-        stift.kreis(x, y, radius);
-
-        String text = "" + node.getInt("self");
-        stift.bewegeBis(x - stift.textBreite(text) / 2.0, y + stift.textHoehe() / 3.0);
-        stift.schreibeText(text);
-    }
-
-    private void zeichne(JSONObject json, double breite, double hoehe) {
-        if (json == null) return;
-
-        int ebenen = ebenen(json);
-        double dy = hoehe / ebenen;
-        double radius = Math.min(15, dy / 3);
-
-        internZeichne(json, breite / 2, dy / 2, breite / 4, dy, radius);
-    }
-
-    private void zeichneBaum() {
-        leinwand.loescheAlles();
-        zeichne(baum.externZeichnen(), leinwand.breite(), leinwand.hoehe());
-    }
-
     @Override
     public void bearbeiteKnopfDruck(Knopf k) {
         if (k == ende) {
             this.gibFrei();
         } else if (k == knopf1) {
             baum.add(zahlenfeld.ganzZahl());
-            zeichneBaum();
+            zeichner.zeichne(baum.externZeichnen());
         } else if (k == knopf2) {
             String ausgabe = ausgabe(baum.externZeichnen());
             System.out.println(ausgabe);
             text1.setzeText(ausgabe);
         } else if (k == knopf3) {
-            int ebenen = ebenen(baum.externZeichnen());
+            int ebenen = Zeichner.ebenen(baum.externZeichnen());
             System.out.println("Anzahl der Ebenen:" + ebenen);
             text1.setzeText("Anzahl der Ebenen: " + ebenen);
         } else if (k == knopf4) {
@@ -168,8 +114,8 @@ public class BaumDemo extends Fenster implements KnopfLauscher {
             if (anzahl < 1 || anzahl > 31) anzahl = 10;
 
             zufallsBaum(anzahl);
-            text1.setzeText(anzahl + " Zufallszahlen eingefügt, " + ebenen(baum.externZeichnen()) + " Ebenen");
-            zeichneBaum();
+            text1.setzeText(anzahl + " Zufallszahlen eingefügt, " + Zeichner.ebenen(baum.externZeichnen()) + " Ebenen");
+            zeichner.zeichne(baum.externZeichnen());
         }
     }
 

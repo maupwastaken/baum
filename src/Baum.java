@@ -7,6 +7,18 @@ public class Baum {
 
     }
 
+    private int tiefe(Element node) {
+        if (node == null) return 0;
+
+        if (node.smallerDepth > node.biggerDepth) return node.smallerDepth + 1;
+        return node.biggerDepth + 1;
+    }
+
+    private void aktualisiereTiefen(Element node) {
+        node.smallerDepth = tiefe(node.smaller);
+        node.biggerDepth = tiefe(node.bigger);
+    }
+
     private Element internAdd(Element node, int index) {
         if (node == null) {
             node = new Element(index);
@@ -14,6 +26,7 @@ public class Baum {
             if (index < node.index) node.smaller = internAdd(node.smaller, index);
             if (index > node.index) node.bigger = internAdd(node.bigger, index);
         }
+        aktualisiereTiefen(node);
         return node;
     }
 
@@ -44,6 +57,7 @@ public class Baum {
             node.index = internKleinstes(node.bigger);
             node.bigger = internDelete(node.bigger, node.index);
         }
+        aktualisiereTiefen(node);
         return node;
     }
 
@@ -64,6 +78,8 @@ public class Baum {
         }
 
         json.put("self", node.index);
+        json.put("smdepth", node.smallerDepth);
+        json.put("bidepth", node.biggerDepth);
         json.put("steps", array);
 
         return json;

@@ -23,6 +23,18 @@ public class Zeichner {
         }
     }
 
+    private void zeichneTiefen(JSONObject node, double x, double y, double radius) {
+        String links = "" + node.optInt("smdepth");
+        String rechts = "" + node.optInt("bidepth");
+        double abstand = 3;
+
+        stift.setzeFarbe(Farbe.BLAU);
+        stift.bewegeBis(x - radius - abstand - stift.textBreite(links), y + stift.textHoehe() / 3.0);
+        stift.schreibeText(links);
+        stift.bewegeBis(x + radius + abstand, y + stift.textHoehe() / 3.0);
+        stift.schreibeText(rechts);
+    }
+
     private void internZeichne(JSONObject node, double x, double y, double dx, double dy, double radius) {
         if (node == null) return;
 
@@ -47,6 +59,8 @@ public class Zeichner {
         String text = "" + node.getInt("self");
         stift.bewegeBis(x - stift.textBreite(text) / 2.0, y + stift.textHoehe() / 3.0);
         stift.schreibeText(text);
+
+        zeichneTiefen(node, x, y, radius);
     }
 
     public void zeichne(JSONObject json) {
